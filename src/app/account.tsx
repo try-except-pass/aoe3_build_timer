@@ -1,8 +1,9 @@
 import * as Clipboard from 'expo-clipboard';
+import { router, Stack } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Card, Chip, Field, Txt } from '@/components/ui';
+import { Button, Card, Chip, Field, IconButton, Txt } from '@/components/ui';
 import {
   createKey,
   forgetKey,
@@ -18,10 +19,21 @@ import { confirm, errorMessage, notify } from '@/lib/dialog';
 import { applyRemotePrefs } from '@/lib/sync';
 import { useColors } from '@/theme/use-app-theme';
 
+/** Back if there is a screen to go back to (not after a reload or a direct link), else Settings. */
+const goBack = () => (router.canGoBack() ? router.back() : router.replace('/settings'));
+
 export default function AccountScreen() {
   const account = useAccount();
+  const colors = useColors();
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      {/* Own back arrow: the default one hides itself when there is no history to go back to. */}
+      <Stack.Screen
+        options={{
+          headerBackVisible: false,
+          headerLeft: () => <IconButton icon="chevron-left" size={30} label="Back" color={colors.primary} onPress={goBack} />,
+        }}
+      />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {account ? <KeyDetails /> : <NoKey />}
       </ScrollView>

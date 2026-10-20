@@ -28,8 +28,9 @@ export default function SettingsScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title="Settings" />
+      {/* Pinned below the header (outside the scroll view) so pending changes stay visible. */}
+      {account && <SaveBar />}
       <ScrollView contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic">
-        {account && <SaveBar />}
 
         <Section title="Theme" hint="One for every Age of Empires III release.">
           <View style={styles.themeGrid}>
@@ -135,19 +136,13 @@ function SaveBar() {
     }
   };
 
-  if (!dirty) {
-    return (
-      <View style={styles.savedRow}>
-        <Icon name="check-circle" size={16} color={colors.textMuted} />
-        <Txt variant="small">Settings saved to your key</Txt>
-      </View>
-    );
-  }
+  if (!dirty) return null;
   return (
-    <Card style={[styles.saveCard, { borderColor: colors.primary }]}>
-      <Txt style={{ flex: 1 }}>You have unsaved settings.</Txt>
+    <View style={[styles.saveBar, { backgroundColor: colors.current, borderColor: colors.primary }]}>
+      <Icon name="alert-circle" size={20} color={colors.primary} />
+      <Txt style={{ flex: 1, fontWeight: '700' }}>Unsaved settings</Txt>
       <Button title="Save" icon="content-save" onPress={save} loading={saving} />
-    </Card>
+    </View>
   );
 }
 
@@ -199,8 +194,14 @@ function ThemeCard({ theme, selected, onPress }: { theme: AppTheme; selected: bo
 const styles = StyleSheet.create({
   content: { padding: 16, gap: 24, paddingBottom: 120 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  savedRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  saveCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 2 },
+  saveBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: 2,
+  },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   themeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   themeCard: { flexBasis: '47%', flexGrow: 1, borderRadius: 12, borderWidth: 2, padding: 10, paddingTop: 0, gap: 8, overflow: 'hidden' },
