@@ -41,3 +41,9 @@ example
 # generated native folders
 /ios
 /android
+
+# community backend keys
+.env
+
+# downloaded tools (cloudflared)
+.tools/

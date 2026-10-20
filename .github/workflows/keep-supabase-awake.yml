@@ -1,0 +1,17 @@
+# Free Supabase projects pause after a week without traffic. A tiny call twice a week keeps the
+# community backend awake. (Uses the public publishable key; the ping function returns "pong".)
+name: Keep Supabase awake
+
+on:
+  schedule:
+    - cron: '0 12 * * 1,4' # Mondays and Thursdays, 12:00 UTC
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - run: >
+          curl -fsS -X POST "https://sjqzurpfdavedbpzvbwk.supabase.co/rest/v1/rpc/ping"
+          -H "apikey: sb_publishable_jdnFjn8T-5skhFkM6sWmjQ_5cVki7ED"
+          -H "Content-Type: application/json" -d '{}'
