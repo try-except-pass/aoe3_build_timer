@@ -36,16 +36,18 @@ Other commands: `npm run typecheck`, `npm run lint`, `npx expo-doctor`.
 
 ## Player key and community backend
 
-There are no accounts. Each player creates a **player key** (Settings → Player key), a random code like `K7QF-2M9X-HV4D-8TRA-PZ3N`. The key:
+There are no accounts. Each player creates a **player key** (Settings → Player key): a random code like `K7QF-2M9X-HV4D-8TRA-PZ3N`, or one they choose (at least 12 letters or numbers; spaces, `-` `_` `.` allowed; case-insensitive). The key:
 
-- syncs the build library and preferences (theme, step sound, warning time, vibration) between devices and the website;
+- syncs the build library between devices and the website automatically;
+- stores preferences (theme, step sound, warning time, vibration): saved with the **Save** button in Settings, loaded whenever the app or website opens;
 - is the identity for publishing and upvoting community builds (one vote per key per build);
 - is never stored on the server, only its SHA-256 hash. There is no recovery, so players are told to save it.
 
 The backend is a free [Supabase](https://supabase.com) project. Setup (once):
 
 1. In the Supabase dashboard open **SQL Editor → New query**, paste [`supabase/schema.sql`](supabase/schema.sql) and click **Run**.
-2. That is it: the app ships with the project's public URL and publishable key ([`src/lib/supabase.ts`](src/lib/supabase.ts)). To use another project, set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in `.env`.
+2. Then run each file in [`supabase/migrations/`](supabase/migrations) that came after you first ran the schema (a fresh `schema.sql` already includes them).
+3. That is it: the app ships with the project's public URL and publishable key ([`src/lib/supabase.ts`](src/lib/supabase.ts)). To use another project, set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in `.env`.
 
 Clients have no direct table access; everything goes through key-checked database functions. `npm run test:db` runs the schema and its security checks in a local Postgres (PGlite).
 

@@ -1,11 +1,21 @@
 import * as Clipboard from 'expo-clipboard';
-import { useState, useSyncExternalStore } from 'react';
+import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Card, Field, Txt } from '@/components/ui';
-import { createKey, forgetKey, formatKey, maskKey, setDisplayName, signInWithKey, useAccount } from '@/lib/account';
+import { Button, Card, Chip, Field, Txt } from '@/components/ui';
+import {
+  createKey,
+  forgetKey,
+  KEY_CHARS,
+  maskKey,
+  MIN_KEY_LENGTH,
+  normalizeKey,
+  setDisplayName,
+  signInWithKey,
+  useAccount,
+} from '@/lib/account';
 import { confirm, errorMessage, notify } from '@/lib/dialog';
-import { applyRemotePrefs, getSyncStatus, subscribeSyncStatus, syncNow } from '@/lib/sync';
+import { applyRemotePrefs } from '@/lib/sync';
 import { useColors } from '@/theme/use-app-theme';
 
 export default function AccountScreen() {
@@ -22,6 +32,8 @@ export default function AccountScreen() {
 function NoKey() {
   const colors = useColors();
   const [name, setName] = useState('');
+  const [ownKey, setOwnKey] = useState(false);
+  const [chosen, setChosen] = useState('');
   const [typed, setTyped] = useState('');
   const [busy, setBusy] = useState<'create' | 'use' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -30,13 +42,19 @@ function NoKey() {
     setBusy('create');
     setError(null);
     try {
-      await createKey(name);
+      await createKey(name, ownKey ? chosen : '');
     } catch (e) {
       setError(errorMessage(e));
     } finally {
       setBusy(null);
     }
   };
+
+  const chosenProblem = !KEY_CHARS.test(chosen)
+    ? 'Only letters, numbers, spaces, - _ and . are allowed.'
+    : normalizeKey(chosen).length < MIN_KEY_LENGTH
+      ? `At least ${MIN_KEY_LENGTH} letters or numbers (${normalizeKey(chosen).length} so far).`
+      : null;
 
   const use = async () => {
     setBusy('use');
@@ -67,7 +85,37 @@ function NoKey() {
           autoCorrect={false}
           placeholder="e.g. FortressFanatic"
         />
-        <Button title="Create my key" icon="key-plus" onPress={create} loading={busy === 'create'} disabled={!!busy} />
+        <View style={{ gap: 8 }}>
+          <Txt variant="small">Key</Txt>
+          <View style={styles.row}>
+            <Chip label="Random (recommended)" selected={!ownKey} onPress={() => setOwnKey(false)} />
+            <Chip label="Choose my own" selected={ownKey} onPress={() => setOwnKey(true)} />
+          </View>
+          {ownKey && (
+            <>
+              <Field
+                value={chosen}
+                onChangeText={setChosen}
+                autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={64}
+                placeholder="e.g. fast-fortress falconets 1789"
+                style={styles.keyInput}
+              />
+              <Txt variant="small" color={chosenProblem ? colors.danger : colors.textMuted}>
+                {chosenProblem ??
+                  'Anyone who guesses your key gets your library, so use something long and personal — not just a name or a word.'}
+              </Txt>
+            </>
+          )}
+        </View>
+        <Button
+          title="Create my key"
+          icon="key-plus"
+          onPress={create}
+          loading={busy === 'create'}
+          disabled={!!busy || (ownKey && !!chosenProblem)}
+        />
       </Card>
 
       <Card style={{ gap: 12 }}>
@@ -75,9 +123,9 @@ function NoKey() {
         <Field
           value={typed}
           onChangeText={setTyped}
-          autoCapitalize="characters"
+          autoCapitalize="none"
           autoCorrect={false}
-          placeholder="XXXX-XXXX-XXXX-XXXX-XXXX"
+          placeholder="Your key"
           style={styles.keyInput}
           onSubmitEditing={use}
         />
@@ -87,7 +135,7 @@ function NoKey() {
           variant="secondary"
           onPress={use}
           loading={busy === 'use'}
-          disabled={!!busy || formatKey(typed).length < 24}
+          disabled={!!busy || normalizeKey(typed).length < MIN_KEY_LENGTH}
         />
         <Txt variant="small">Builds already on this device are kept and merged into the key&apos;s library.</Txt>
       </Card>
@@ -100,7 +148,6 @@ function NoKey() {
 function KeyDetails() {
   const colors = useColors();
   const account = useAccount()!;
-  const sync = useSyncExternalStore(subscribeSyncStatus, getSyncStatus);
   const [revealed, setRevealed] = useState(false);
   const [name, setName] = useState(account.displayName ?? '');
   const [savingName, setSavingName] = useState(false);
@@ -171,20 +218,6 @@ function KeyDetails() {
           disabled={name.trim() === (account.displayName ?? '') || (name.trim().length > 0 && name.trim().length < 2)}
         />
         <Txt variant="small">Shown as “{account.authorName}” right now.</Txt>
-      </Card>
-
-      <Card style={{ gap: 12 }}>
-        <Txt variant="heading">Sync</Txt>
-        <Txt variant="muted">
-          {sync.syncing
-            ? 'Syncing…'
-            : sync.error
-              ? `Last sync failed: ${sync.error}`
-              : sync.lastSyncedAt
-                ? `Library and preferences synced at ${new Date(sync.lastSyncedAt).toLocaleTimeString()}.`
-                : 'Your library and preferences sync automatically.'}
-        </Txt>
-        <Button title="Sync now" icon="sync" variant="secondary" onPress={() => syncNow()} loading={sync.syncing} />
       </Card>
 
       <Button title="Remove key from this device" icon="logout" variant="ghost" onPress={remove} />

@@ -56,6 +56,14 @@ ok((await rpc('update_player', a.key, '', null)).display_name === null, "'' clea
 await rpc('update_player', a.key, 'Miguel', null);
 await fails(rpc('update_player', a.key, 'x'.repeat(30), null), 'too-long display name rejected');
 
+// Custom keys
+const custom = await rpc('create_player', 'Chooser', 'My Fortress Key 2026');
+ok(custom.key === 'My Fortress Key 2026', 'custom key is accepted and returned as typed');
+ok((await rpc('get_player', 'my-fortress-key-2026')).player_id === custom.player_id, 'custom key works with other case and separators');
+await fails(rpc('create_player', null, 'MY FORTRESS KEY 2026'), 'same key (different case) is taken');
+await fails(rpc('create_player', null, 'short key'), 'too-short custom key rejected');
+await fails(rpc('create_player', null, 'emoji key 🙂🙂🙂🙂🙂🙂'), 'disallowed characters rejected');
+
 // Library sync
 const s1 = await rpc('sync_library', a.key, JSON.stringify([
   { id: 'b1', data: { title: 'One' }, updatedAt: 1000, deleted: false },

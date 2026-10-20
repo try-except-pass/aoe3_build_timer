@@ -1,4 +1,5 @@
 import { useAudioPlayer } from 'expo-audio';
+import { useState } from 'react';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
@@ -9,7 +10,9 @@ import { Button, Card, Chip, Icon, Txt } from '@/components/ui';
 import { ICON_LIST } from '@/data/icons.generated';
 import { STEP_SOUNDS } from '@/data/sounds';
 import { useAccount } from '@/lib/account';
+import { errorMessage, notify } from '@/lib/dialog';
 import { settingsStore, updateSettings } from '@/lib/settings';
+import { savePrefs, usePrefsDirty } from '@/lib/sync';
 import { THEME_ART } from '@/theme/art';
 import { THEMES, type AppTheme } from '@/theme/themes';
 import { useColors } from '@/theme/use-app-theme';
@@ -26,6 +29,8 @@ export default function SettingsScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title="Settings" />
       <ScrollView contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic">
+        {account && <SaveBar />}
+
         <Section title="Theme" hint="One for every Age of Empires III release.">
           <View style={styles.themeGrid}>
             {THEMES.map((t) => (
@@ -113,6 +118,39 @@ export default function SettingsScreen() {
   );
 }
 
+/** Saves theme, sound and player settings to the player key so other devices load them. */
+function SaveBar() {
+  const colors = useColors();
+  const dirty = usePrefsDirty();
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await savePrefs();
+    } catch (e) {
+      notify('Could not save settings', errorMessage(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!dirty) {
+    return (
+      <View style={styles.savedRow}>
+        <Icon name="check-circle" size={16} color={colors.textMuted} />
+        <Txt variant="small">Settings saved to your key</Txt>
+      </View>
+    );
+  }
+  return (
+    <Card style={[styles.saveCard, { borderColor: colors.primary }]}>
+      <Txt style={{ flex: 1 }}>You have unsaved settings.</Txt>
+      <Button title="Save" icon="content-save" onPress={save} loading={saving} />
+    </Card>
+  );
+}
+
 function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
     <View style={{ gap: 10 }}>
@@ -161,6 +199,8 @@ function ThemeCard({ theme, selected, onPress }: { theme: AppTheme; selected: bo
 const styles = StyleSheet.create({
   content: { padding: 16, gap: 24, paddingBottom: 120 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  savedRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  saveCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 2 },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   themeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   themeCard: { flexBasis: '47%', flexGrow: 1, borderRadius: 12, borderWidth: 2, padding: 10, paddingTop: 0, gap: 8, overflow: 'hidden' },

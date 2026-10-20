@@ -32,9 +32,16 @@ const toAccount = (key: string, p: PlayerRow): Account => ({
   authorName: p.author_name,
 });
 
-/** Creates a brand-new key. Returns the account; the key is only ever shown at this point. */
-export async function createKey(displayName: string) {
-  const p = await rpc<PlayerRow & { key: string }>('create_player', { p_display_name: displayName.trim() || null });
+/**
+ * Creates a new player. `customKey` empty = the server generates a random key.
+ * Returns the account; the key is only ever shown at this point.
+ */
+export async function createKey(displayName: string, customKey = '') {
+  const p = await rpc<PlayerRow & { key: string }>('create_player', {
+    p_display_name: displayName.trim() || null,
+    // Only sent when chosen, so random keys also work on databases without migration 002.
+    ...(customKey.trim() ? { p_key: customKey.trim() } : {}),
+  });
   const account = toAccount(p.key, p);
   accountStore.set(account);
   return account;
@@ -43,7 +50,7 @@ export async function createKey(displayName: string) {
 /** Signs this device in with an existing key. Returns the server-side preferences. */
 export async function signInWithKey(key: string) {
   const p = await rpc<PlayerRow>('get_player', { p_key: key.trim() });
-  accountStore.set(toAccount(formatKey(key), p));
+  accountStore.set(toAccount(key.trim(), p));
   return p.prefs ?? {};
 }
 
@@ -58,15 +65,16 @@ export function forgetKey() {
   accountStore.set(null);
 }
 
-/** Pretty-prints a typed key as XXXX-XXXX-XXXX-XXXX-XXXX (same normalisation as the server). */
-export function formatKey(key: string) {
-  const raw = key
+/** Letters and digits that count towards a key (same normalisation as the server). */
+export const normalizeKey = (key: string) =>
+  key
     .toUpperCase()
     .replace(/[^0-9A-Z]/g, '')
     .replace(/[IL]/g, '1')
     .replace(/O/g, '0');
-  return raw.match(/.{1,4}/g)?.join('-') ?? raw;
-}
 
-/** For display: only the last group visible. */
-export const maskKey = (key: string) => key.replace(/[0-9A-Z](?=.*-)/g, '•');
+export const MIN_KEY_LENGTH = 12;
+export const KEY_CHARS = /^[A-Za-z0-9 ._-]*$/;
+
+/** For display: everything except the last 4 characters hidden. */
+export const maskKey = (key: string) => key.slice(0, -4).replace(/[^ -]/g, '•') + key.slice(-4);

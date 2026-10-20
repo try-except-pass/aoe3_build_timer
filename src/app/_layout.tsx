@@ -59,7 +59,7 @@ export default function RootLayout() {
             <Stack.Screen name="edit/[id]" options={{ title: 'Edit build' }} />
             <Stack.Screen name="play/[id]" options={{ headerShown: false, gestureEnabled: false }} />
             <Stack.Screen name="community/[id]" options={{ title: '' }} />
-            <Stack.Screen name="account" options={{ presentation: 'modal', title: 'Player key' }} />
+            <Stack.Screen name="account" options={{ title: 'Player key' }} />
           </Stack>
         </View>
       </ThemeProvider>
